@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TEMPLATES } from './templates/templates';
 import { EditorSettings, DocumentTemplate } from './types';
 import { parseMarkdownToHtml, getMarkdownStats } from './utils/markdown';
-import { downloadPdfFile } from './utils/pdfDownloader';
+import { downloadPdf } from './utils/pdfExport';
 import { Navbar } from './components/Navbar';
 import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
@@ -96,29 +96,14 @@ export const App: React.FC = () => {
 
   // Trigger direct PDF download
   const handleDownloadPdf = async () => {
-    const element = document.getElementById('printable-root');
-    if (!element || isDownloadingPdf) return;
+    if (isDownloadingPdf) return;
 
     setIsDownloadingPdf(true);
     try {
-      const marginMm = (() => {
-        switch (settings.margin) {
-          case 'compact':
-            return 10;
-          case 'spacious':
-            return 25;
-          case 'custom':
-            return settings.customMarginMm;
-          case 'standard':
-          default:
-            return 16;
-        }
-      })();
-
-      await downloadPdfFile(element, {
-        filename: documentTitle || 'document',
-        pageSize: settings.pageSize,
-        marginMm,
+      await downloadPdf({
+        markdown,
+        settings,
+        documentTitle,
       });
     } catch (err) {
       console.error('Download error:', err);
@@ -189,7 +174,7 @@ export const App: React.FC = () => {
       <main className="flex-1 flex overflow-hidden">
         {/* Editor Pane (Left) */}
         {(viewMode === 'split' || viewMode === 'editor') && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all`}>
+          <div className={`editor-column no-print print:hidden ${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all`}>
             <EditorPane
               value={markdown}
               onChange={setMarkdown}
@@ -203,12 +188,12 @@ export const App: React.FC = () => {
 
         {/* Live PDF Preview Pane (Right) */}
         {(viewMode === 'split' || viewMode === 'preview') && (
-          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all`}>
+          <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all print:w-full`}>
             <PreviewPane
               htmlContent={htmlContent}
+              markdown={markdown}
               settings={settings}
               documentTitle={documentTitle}
-              onPrintPdf={handlePrintPdf}
             />
           </div>
         )}

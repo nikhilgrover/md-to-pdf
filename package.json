@@ -21,10 +21,9 @@
   "author": "Nikhil Grover",
   "license": "MIT",
   "dependencies": {
-    "@types/html2pdf.js": "^0.10.0",
     "dompurify": "^3.2.4",
     "highlight.js": "^11.11.1",
-    "html2pdf.js": "^0.14.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "marked": "^15.0.7",
     "marked-highlight": "^2.2.1",
