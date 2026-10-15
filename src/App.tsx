@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TEMPLATES } from './templates/templates';
 import { EditorSettings, DocumentTemplate } from './types';
 import { parseMarkdownToHtml, getMarkdownStats } from './utils/markdown';
+import { downloadPdfFile } from './utils/pdfDownloader';
 import { Navbar } from './components/Navbar';
 import { EditorPane } from './components/EditorPane';
 import { PreviewPane } from './components/PreviewPane';
@@ -53,6 +54,7 @@ export const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Auto-save to LocalStorage
   useEffect(() => {
@@ -90,6 +92,39 @@ export const App: React.FC = () => {
   // Trigger vector print dialog
   const handlePrintPdf = () => {
     window.print();
+  };
+
+  // Trigger direct PDF download
+  const handleDownloadPdf = async () => {
+    const element = document.getElementById('printable-root');
+    if (!element || isDownloadingPdf) return;
+
+    setIsDownloadingPdf(true);
+    try {
+      const marginMm = (() => {
+        switch (settings.margin) {
+          case 'compact':
+            return 10;
+          case 'spacious':
+            return 25;
+          case 'custom':
+            return settings.customMarginMm;
+          case 'standard':
+          default:
+            return 16;
+        }
+      })();
+
+      await downloadPdfFile(element, {
+        filename: documentTitle || 'document',
+        pageSize: settings.pageSize,
+        marginMm,
+      });
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   // Export current markdown file
@@ -146,9 +181,11 @@ export const App: React.FC = () => {
         onExportMarkdown={handleExportMarkdown}
         onImportMarkdown={handleImportMarkdown}
         onPrintPdf={handlePrintPdf}
+        onDownloadPdf={handleDownloadPdf}
+        isDownloadingPdf={isDownloadingPdf}
       />
 
-      {/* Main Workspace Area */}
+      {/* Main Workspace Area: Editor on Left, PDF Preview on Right */}
       <main className="flex-1 flex overflow-hidden">
         {/* Editor Pane (Left) */}
         {(viewMode === 'split' || viewMode === 'editor') && (
@@ -164,7 +201,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Live Preview Pane (Right) */}
+        {/* Live PDF Preview Pane (Right) */}
         {(viewMode === 'split' || viewMode === 'preview') && (
           <div className={`${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all`}>
             <PreviewPane

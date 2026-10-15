@@ -9,7 +9,8 @@ import {
   Scissors, 
   Eye, 
   Edit3, 
-  Columns
+  Columns,
+  Loader2
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,6 +25,8 @@ interface NavbarProps {
   onExportMarkdown: () => void;
   onImportMarkdown: (content: string, filename: string) => void;
   onPrintPdf: () => void;
+  onDownloadPdf: () => void;
+  isDownloadingPdf?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -38,6 +41,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportMarkdown,
   onImportMarkdown,
   onPrintPdf,
+  onDownloadPdf,
+  isDownloadingPdf = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="h-6 w-px bg-zinc-800 mx-1 hidden sm:block" />
 
         {/* Editable Document Title */}
-        <div className="relative group max-w-[200px] sm:max-w-[280px]">
+        <div className="relative group max-w-[180px] sm:max-w-[260px]">
           <input
             type="text"
             value={documentTitle}
@@ -90,8 +95,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800/80 text-[11px] font-mono text-zinc-400">
           <span>{stats.words} words</span>
           <span>•</span>
-          <span>{stats.lines} lines</span>
-          <span>•</span>
           <span className="text-amber-400 font-bold">~{stats.estimatedPages} pg</span>
         </div>
       </div>
@@ -100,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="hidden md:flex items-center bg-zinc-900 p-0.5 rounded-lg border border-zinc-800 text-xs font-medium">
         <button
           onClick={() => onViewModeChange('editor')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
             viewMode === 'editor'
               ? 'bg-zinc-800 text-amber-400 shadow font-bold'
               : 'text-zinc-400 hover:text-zinc-200'
@@ -113,28 +116,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onViewModeChange('split')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
             viewMode === 'split'
               ? 'bg-zinc-800 text-amber-400 shadow font-bold'
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
-          title="Split Screen"
+          title="Split Screen (Editor Left | PDF Right)"
         >
           <Columns className="w-3.5 h-3.5" />
-          <span>Split</span>
+          <span>Editor &amp; PDF</span>
         </button>
 
         <button
           onClick={() => onViewModeChange('preview')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
             viewMode === 'preview'
               ? 'bg-zinc-800 text-amber-400 shadow font-bold'
               : 'text-zinc-400 hover:text-zinc-200'
           }`}
-          title="Preview Only"
+          title="PDF Preview Only"
         >
           <Eye className="w-3.5 h-3.5" />
-          <span>Preview</span>
+          <span>PDF Preview</span>
         </button>
       </div>
 
@@ -154,7 +157,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           onClick={onInsertPageBreak}
           className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono transition-all cursor-pointer"
-          title="Insert Page Break into Markdown"
+          title="Insert Page Break (breaks to next PDF sheet)"
         >
           <Scissors className="w-3.5 h-3.5 text-amber-400" />
           <span>+ PageBreak</span>
@@ -196,14 +199,34 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="hidden md:inline">.md</span>
         </button>
 
-        {/* Main Action: Export PDF */}
+        {/* Browser Print / Vector Option */}
         <button
           onClick={onPrintPdf}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-zinc-950 font-black text-xs shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all hover:scale-[1.02] cursor-pointer"
-          title="Generate vector PDF / Print"
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+          title="Browser Vector Print (Cmd+P)"
         >
-          <Printer className="w-4 h-4" />
-          <span>Export PDF</span>
+          <Printer className="w-3.5 h-3.5 text-amber-400" />
+          <span>Print</span>
+        </button>
+
+        {/* Primary Action: Direct Download PDF */}
+        <button
+          onClick={onDownloadPdf}
+          disabled={isDownloadingPdf}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-zinc-950 font-black text-xs shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50"
+          title="Download PDF file directly to your computer"
+        >
+          {isDownloadingPdf ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Exporting...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5" />
+              <span>Download PDF</span>
+            </>
+          )}
         </button>
       </div>
     </header>
